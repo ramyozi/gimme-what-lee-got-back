@@ -136,3 +136,9 @@ REST_FRAMEWORK = {
 # ImageField saving locally
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+CORS_ALLOWED_ORIGINS = [
+    'http://127.0.0.1:3000',
+    'http://localhost:3000',
+    'https://www.wip.com'
+]
