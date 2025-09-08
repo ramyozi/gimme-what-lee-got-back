@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import {getCategories} from "./api/category.ts";
-import {getItems} from "./api/item.ts";
+import {getCategories} from "./services/api/category.ts";
+import {getItems} from "./services/api/item.ts";
 
 function App() {
   const [categories, setCategories] = useState([])
