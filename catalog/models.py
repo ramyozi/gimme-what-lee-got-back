@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from users.models import CustomUser
 
 
 class Category(models.Model):
@@ -16,7 +16,9 @@ class Item(models.Model):
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='items')
     image = models.ImageField(upload_to='items/', blank=True, null=True)
     url = models.URLField(blank=True, null=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_by = models.ForeignKey(
+        CustomUser, on_delete=models.SET_NULL, null=True, related_name='items_created'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     tags = models.JSONField(default=list, blank=True)
@@ -29,7 +31,7 @@ class Item(models.Model):
 
 
 class UserInteraction(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     liked = models.BooleanField(default=False)
     bookmarked = models.BooleanField(default=False)

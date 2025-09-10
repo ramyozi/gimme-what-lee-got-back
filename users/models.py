@@ -1,14 +1,16 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
+class RoleChoices(models.TextChoices):
+    USER = "user", "User"
+    ADMIN = "admin", "Admin"
 
-# Class roles
-class Role(models.Model):
-    name = models.CharField(max_length=50, unique=True)
-
-    def __str__(self):
-        return self.name
-
-# Custom user model with roles
 class CustomUser(AbstractUser):
-    roles = models.ManyToManyField(roles, blank=True)
+    role = models.CharField(
+        max_length=20,
+        choices=RoleChoices.choices,
+        default=RoleChoices.USER
+    )
+
+    def is_admin(self):
+        return self.role == RoleChoices.ADMIN
