@@ -1,70 +1,75 @@
-# 🏗 Gimme What Lee Got
+# 🛠️ Gimme What Lee Got – Backend
 
-**Gimme What Lee Got** is a playful yet ambitious project inspired by the RDCworld “Lee” meme.  
-It’s a **full-stack catalog & recommendation platform** built to explore **Django, REST APIs, modern frontend, and AI/ML concepts**.  
+This is the **backend API** for **Gimme What Lee Got**, built with **Django + Django REST Framework (DRF)**.  
+It powers the catalog, authentication, and recommendation logic.
 
 ---
 
 ## 🚀 Tech Stack
-
-### Backend
-- **Django** → web framework  
-- **Django REST Framework (DRF)** → REST APIs  
-- **PostgreSQL** → main database  
-- **django-environ** → environment variables & secrets  
-- **JWT (SimpleJWT)** → authentication  
-
-### Frontend
-- **React + TypeScript** → interactive UI  
-- **Vite** → fast dev server and bundler  
-- **Axios / Fetch** → API calls  
-- **CSS / Assets** → styling  
+- **Django** – web framework
+- **Django REST Framework (DRF)** – REST APIs
+- **PostgreSQL** – main database
+- **django-environ** – environment variables
+- **SimpleJWT** – JWT-based authentication
 
 ---
 
-## ⚙️ How to Run Locally
+## ⚙️ Setup & Run Locally
 
-### 1 Clone the repository
+### 1) Clone the repository
 ```bash
-git clone https://github.com/ramyozi/gimmewhatleegot.git
-cd core
+git clone https://github.com/ramyozi/gimmewhatleegot-backend.git
+cd gimmewhatleegot-backend
 ```
 
-### 2 Backend setup (Django + PostgreSQL)
-# Create and activate virtual environment
-python -m venv .venv
+### 2) Create & acpython -m venv .venv
+```bash
 source .venv/bin/activate   # macOS/Linux
 .venv\Scripts\activate      # Windows
+tivate virtual environment
+```
 
-# Install dependencies
+### 3) Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-Important: 
-- Create a .env file in the project root (next to manage.py) based on .env.example
-- Make sure PostgreSQL is installed and running, and the database/user exist:
-(createdb gimmewhatleegot)
-- Run migrations and start the backend:
+### 4) Configure environment
+Create a .env file in the project root (next to manage.py) based on .env.example:
 ```bash
+SECRET_KEY=your_django_secret
+DEBUG=True
+DATABASE_NAME=gimmewhatleegot
+DATABASE_USER=postgres
+DATABASE_PASSWORD=postgres
+DATABASE_HOST=localhost
+DATABASE_PORT=xxxx
+```
+
+### 4) Setup database
+Make sure PostgreSQL is running, then:
+```bash
+createdb gimmewhatleegot
 python manage.py migrate
+
+```
+
+### 4) Run backend
+```bash
 python manage.py runserver
 ```
 
 Backend will be available at: http://127.0.0.1:8000
 
-### 3️⃣ Frontend setup (React + Vite)
-```bash
-cd frontend
-npm install
-```
-Create a .env file inside frontend/ based on .env.example.
-Start the frontend: 
-```bash
-npm run dev
-```
-Frontend will be available at: http://127.0.0.1:3000
 
+## Project Structure
+```
+gimmewhatleegot-backend/
+├── catalog/         # Items, categories, interactions
+├── users/           # Authentication, registration
+├── core/           # Settings, urls, wsgi
+└── requirements.txt
+```
 
 ---
 # What is this project and why:
@@ -103,6 +108,3 @@ Over time, the project could evolve into:
 ---
 
 This is a learning project. The focus is on exploring Django, AI, and full-stack development while building something fun and useful.
-
-
-
