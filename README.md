@@ -27,7 +27,7 @@ It’s a **full-stack catalog & recommendation platform** built to explore **Dja
 ### 1 Clone the repository
 ```bash
 git clone https://github.com/ramyozi/gimmewhatleegot.git
-cd gimmewhatleegot
+cd core
 ```
 
 ### 2 Backend setup (Django + PostgreSQL)
