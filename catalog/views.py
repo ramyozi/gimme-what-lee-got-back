@@ -22,15 +22,13 @@ class UserInteractionViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='liked-items/(?P<user_id>[^/.]+)')
     def liked_items(self, request, user_id:None):
         """Return all liked items for a specific user."""
-        liked_interactions = UserInteraction.objects.filter(user_id=user_id, liked=True)
-        items = [interaction.item for interaction in liked_interactions]
-        serializer = ItemSerializer(items, many=True)
+        interactions = UserInteraction.objects.filter(user_id=user_id, liked=True)
+        serializer = UserInteractionSerializer(interactions, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], url_path='bookmarked-items/(?P<user_id>[^/.]+)')
     def bookmarked_items(self, request, user_id: None):
         """Return all bookmarked items for a specific user."""
-        bookmarked_interactions = UserInteraction.objects.filter(user_id=user_id, bookmarked=True)
-        items = [interaction.item for interaction in bookmarked_interactions]
-        serializer = ItemSerializer(items, many=True)
+        interactions = UserInteraction.objects.filter(user_id=user_id, bookmarked=True)
+        serializer = UserInteractionSerializer(interactions, many=True)
         return Response(serializer.data)
