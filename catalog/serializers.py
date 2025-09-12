@@ -1,7 +1,6 @@
-from users.models import CustomUser
 from .models import Category, Item, UserInteraction
 from rest_framework import serializers
-from users.serializers import CustomUserSerializer
+from accounts.serializers import AccountSerializer
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,7 +15,7 @@ class ItemSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class UserInteractionSerializer(serializers.ModelSerializer):
-    user = CustomUserSerializer(read_only=True)
+    user = AccountSerializer(read_only=True)
     item = ItemSerializer(read_only=True)
 
     class Meta:

@@ -1,5 +1,5 @@
 from django.db import models
-from users.models import CustomUser
+from accounts.models import Account
 
 
 class Category(models.Model):
@@ -17,7 +17,7 @@ class Item(models.Model):
     image = models.ImageField(upload_to='items/', blank=True, null=True)
     url = models.URLField(blank=True, null=True)
     created_by = models.ForeignKey(
-        CustomUser, on_delete=models.SET_NULL, null=True, related_name='items_created'
+        Account, on_delete=models.SET_NULL, null=True, related_name='items_created'
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -31,7 +31,7 @@ class Item(models.Model):
 
 
 class UserInteraction(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    user = models.ForeignKey(Account, on_delete=models.CASCADE)
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     liked = models.BooleanField(default=False)
     bookmarked = models.BooleanField(default=False)

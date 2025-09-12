@@ -1,25 +1,25 @@
 from rest_framework import generics, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import CustomUser
-from .serializers import RegisterSerializer, UserSerializer
+from .models import Account
+from .serializers import RegisterSerializer, AccountSerializer
 
-# Login JWT
+# login JWT standard
 class LoginView(TokenObtainPairView):
     serializer_class = TokenObtainPairSerializer
 
-# Register
+# création d'utilisateur avec vérification des rôles
 class RegisterView(generics.CreateAPIView):
-    queryset = CustomUser.objects.all()
+    queryset = Account.objects.all()
     serializer_class = RegisterSerializer
-    permission_classes = [permissions.AllowAny]  # Permet à n'importe qui de s'enregistrer
+    permission_classes = [permissions.AllowAny]
 
-# Info utilisateur connecté
+# récupération des infos du compte connecté
 class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        serializer = UserSerializer(request.user)
+        serializer = AccountSerializer(request.user)
         return Response(serializer.data)

@@ -29,7 +29,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'catalog',
-    'users',
+    'accounts',
 ]
 
 MIDDLEWARE = [
@@ -148,4 +148,4 @@ CORS_ALLOWED_ORIGINS = [
     'https://www.wip.com'
 ]
 
-AUTH_USER_MODEL = "users.CustomUser"
+AUTH_USER_MODEL = "accounts.models.Account"

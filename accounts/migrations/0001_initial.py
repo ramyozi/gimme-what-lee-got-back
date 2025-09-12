@@ -38,11 +38,11 @@ class Migration(migrations.Migration):
                 ('date_joined', models.DateTimeField(default=django.utils.timezone.now, verbose_name='date joined')),
                 ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to.', related_name='customuser_set', to='auth.group', verbose_name='groups')),
                 ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='customuser_set', to='auth.permission', verbose_name='user permissions')),
-                ('roles', models.ManyToManyField(blank=True, to='users.role')),
+                ('roles', models.ManyToManyField(blank=True, to='accounts.role')),
             ],
             options={
                 'verbose_name': 'user',
-                'verbose_name_plural': 'users',
+                'verbose_name_plural': 'accounts',
                 'abstract': False,
             },
             managers=[
