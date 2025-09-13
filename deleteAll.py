@@ -1,4 +1,4 @@
-from users.models import CustomUser, Role
+from accounts.models import Account, Role
 from catalog.models import Category, Item, UserInteraction
 
 # Supprimer toutes les interactions
@@ -11,7 +11,7 @@ Item.objects.all().delete()
 Category.objects.all().delete()
 
 # Supprimer tous les utilisateurs sauf le superuser actuel si besoin
-CustomUser.objects.exclude(is_superuser=True).delete()
+Account.objects.exclude(is_superuser=True).delete()
 
 # Supprimer tous les rôles si tu veux repartir de zéro
 Role.objects.all().delete()
