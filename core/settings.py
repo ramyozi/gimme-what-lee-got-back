@@ -148,4 +148,4 @@ CORS_ALLOWED_ORIGINS = [
     'https://www.wip.com'
 ]
 
-AUTH_USER_MODEL = "accounts.models.Account"
+AUTH_USER_MODEL = "accounts.Account"
