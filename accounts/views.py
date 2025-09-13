@@ -3,8 +3,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import Account
-from .serializers import RegisterSerializer, AccountSerializer
+from accounts.models import Account
+from accounts.serializers.read import AccountSerializer
+from accounts.serializers.write import RegisterSerializer
+
 
 # login JWT standard
 class LoginView(TokenObtainPairView):

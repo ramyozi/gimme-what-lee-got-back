@@ -1,6 +1,7 @@
-from .models import Category, Item, UserInteraction
 from rest_framework import serializers
-from accounts.serializers import AccountSerializer
+
+from accounts.serializers.read import AccountSerializer
+from catalog.models import Category, Item, UserInteraction
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,6 +10,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ItemSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
+    created_by = AccountSerializer(read_only=True)
 
     class Meta:
         model = Item
