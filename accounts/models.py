@@ -19,3 +19,12 @@ class Account(AbstractUser):
     @property
     def is_staff(self):
         return self.is_admin()
+
+    @is_staff.setter
+    def is_staff(self, value):
+        # Ignorer ou convertir en rôle admin
+        if value:
+            self.role = "admin"
+        else:
+            self.role = "member"
+
