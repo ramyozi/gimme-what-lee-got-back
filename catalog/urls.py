@@ -1,5 +1,5 @@
 from rest_framework import routers
-from .views import CategoryViewSet, ItemViewSet, UserInteractionViewSet
+from catalog.views import CategoryViewSet, ItemViewSet, UserInteractionViewSet
 from django.urls import path, include
 
 router = routers.DefaultRouter()
