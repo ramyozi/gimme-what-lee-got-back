@@ -19,6 +19,12 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
 
+# logout / déconnexion
+class LogoutView(APIView):
+    permission_classes = [permissions.AllowAny]
+    def post(self, request):
+        logout(request)
+
 # récupération des infos du compte connecté
 class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
