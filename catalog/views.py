@@ -1,7 +1,9 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework import permissions
 from catalog.models import Category, Item, UserInteraction
+from catalog.permissions import IsAdminOrReadOnly, IsOwnerOrAdmin
 from catalog.serializers.read import (
     CategorySerializer, ItemSerializer, UserInteractionSerializer
 )
@@ -82,25 +84,12 @@ class UserInteractionViewSet(viewsets.ModelViewSet):
         return UserInteractionSerializer
 
     # seuls les membres et admins peuvent créer une interaction
-    @allowed_roles("member", "admin")
-    def create(self, request, *args, **kwargs):
-        request.data["user"] = request.user.id  # forcer l'utilisateur connecté
-        return super().create(request, *args, **kwargs)
-
-    # membres peuvent modifier uniquement leurs propres interactions
-    @allowed_roles("member", "admin")
-    def update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        if obj.user != request.user and request.user.role != "admin":
-            return Response({"detail": "Permission denied"}, status=403)
-        return super().update(request, *args, **kwargs)
-
-    @allowed_roles("member", "admin")
-    def partial_update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        if obj.user != request.user and request.user.role != "admin":
-            return Response({"detail": "Permission denied"}, status=403)
-        return super().partial_update(request, *args, **kwargs)
+    def get_permissions(self):
+        if self.action in ["update", "partial_update", "destroy"]:
+            return [IsOwnerOrAdmin()]
+        if self.action == "create":
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
     @action(detail=False, methods=['get'], url_path='liked-items/(?P<user_id>[^/.]+)')
     def liked_items(self, request, user_id=None):
