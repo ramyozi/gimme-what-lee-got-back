@@ -40,3 +40,8 @@ class UserInteraction(models.Model):
 
     class Meta:
         unique_together = ('user', 'item')
+        indexes = [
+            models.Index(fields=['user', 'item']),
+            models.Index(fields=['liked']),
+            models.Index(fields=['bookmarked']),
+        ]

@@ -39,6 +39,20 @@ class ItemViewSet(viewsets.ModelViewSet):
             return ItemUpdateSerializer
         return ItemSerializer
 
+    # feed
+    @action(detail=False, methods=["get"], url_path="feed")
+    def feed(self,request):
+        """
+        Retourne un "feed" des items, triés par popularité (ou autre critère).
+        Plus tard, on pourra ajouter des recommandations personnalisées.
+        """
+        items = (
+            Item.objects.all()
+            .select_related("category", "created_by")
+            .order_by("-popularity_score", "-created_at") #[:50] pour le top 50
+        )
+        serializer = ItemSerializer(items, many=True)
+        return Response(serializer.data)
 
 # Gestion des interactions utilisateur
 class UserInteractionViewSet(viewsets.ModelViewSet):
