@@ -1,3 +1,4 @@
+from django.contrib.auth import logout
 from rest_framework import generics, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -17,6 +18,12 @@ class RegisterView(generics.CreateAPIView):
     queryset = Account.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+
+# logout / déconnexion
+class LogoutView(APIView):
+    permission_classes = [permissions.AllowAny]
+    def post(self, request):
+        logout(request)
 
 # récupération des infos du compte connecté
 class MeView(APIView):

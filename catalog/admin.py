@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Item, UserInteraction
+from catalog.models import Category, Item, UserInteraction
 
 admin.site.register(Category)
 admin.site.register(Item)
