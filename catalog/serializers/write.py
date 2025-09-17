@@ -33,6 +33,27 @@ class UserInteractionCreateSerializer(serializers.ModelSerializer):
         model = UserInteraction
         fields = ('user', 'item', 'liked', 'bookmarked', 'rating')
 
+    """
+    Lors de la création, l'utilisateur est automatiquement
+    associé via la requête donc pas besoin que le frontend envoie un user_id.
+    """
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+
+    """
+    Vérifie qu'il n'existe pas déjà une interaction (user, item).
+    """
+    def validate(self, data):
+        user = self.context['request'].user
+        item = data.get('item')
+
+        if UserInteraction.objects.filter(user=user, item=item).exists():
+            raise serializers.ValidationError(
+                {"detail": "You already have an interaction with this item."}
+            )
+        return data
+
 class UserInteractionUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserInteraction
