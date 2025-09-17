@@ -16,7 +16,8 @@ class ItemCreateSerializer(serializers.ModelSerializer):
         model = Item
         fields = (
             'title', 'description', 'category',
-            'image', 'url', 'tags'
+            'image', 'url', 'tags',
+            'authors', 'contributors', 'producers'
         )
 
 class ItemUpdateSerializer(serializers.ModelSerializer):
@@ -25,6 +26,7 @@ class ItemUpdateSerializer(serializers.ModelSerializer):
         fields = (
             'title', 'description', 'category',
             'image', 'url', 'tags',
+            'authors', 'contributors', 'producers',
             'popularity_score', 'rating', 'number_of_ratings'
         )
 

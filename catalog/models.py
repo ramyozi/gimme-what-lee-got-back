@@ -9,6 +9,13 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+class Person(models.Model):
+    name = models.CharField(max_length=255)
+    bio = models.TextField(blank=True)
+    website = models.URLField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
 
 class Item(models.Model):
     title = models.CharField(max_length=255)
@@ -25,6 +32,9 @@ class Item(models.Model):
     popularity_score = models.FloatField(default=0.0)
     rating = models.FloatField(default=0.0)
     number_of_ratings = models.PositiveIntegerField(default=0)
+    authors = models.ManyToManyField(Person, blank=True, related_name="authored_items")
+    producers = models.ManyToManyField(Person, blank=True, related_name="produced_items")
+    contributors = models.ManyToManyField(Person, blank=True, related_name="contributed_items")
 
     def __str__(self):
         return self.title
@@ -45,3 +55,4 @@ class UserInteraction(models.Model):
             models.Index(fields=['liked']),
             models.Index(fields=['bookmarked']),
         ]
+
