@@ -1,7 +1,9 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
 from catalog.models import Category, Item, UserInteraction
+from catalog.permissions import IsAdminOrReadOnly, IsOwnerOrAdmin
 from catalog.serializers.read import (
     CategorySerializer, ItemSerializer, UserInteractionSerializer
 )
@@ -10,11 +12,12 @@ from catalog.serializers.write import (
     ItemCreateSerializer, ItemUpdateSerializer,
     UserInteractionCreateSerializer, UserInteractionUpdateSerializer,
 )
-from accounts.decorators import allowed_roles
 
-# viewset pour gérer les catégories
+
+# Gestion des catégories
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
+    permission_classes = [IsAdminOrReadOnly]  # seuls admins modifient
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -23,27 +26,11 @@ class CategoryViewSet(viewsets.ModelViewSet):
             return CategoryUpdateSerializer
         return CategorySerializer
 
-    # seules les admins peuvent créer/modifier/supprimer
-    @allowed_roles("admin")
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
 
-    @allowed_roles("admin")
-    def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
-
-    @allowed_roles("admin")
-    def partial_update(self, request, *args, **kwargs):
-        return super().partial_update(request, *args, **kwargs)
-
-    @allowed_roles("admin")
-    def destroy(self, request, *args, **kwargs):
-        return super().destroy(request, *args, **kwargs)
-
-
-# viewset pour gérer les items
+# Gestion des items
 class ItemViewSet(viewsets.ModelViewSet):
     queryset = Item.objects.all()
+    permission_classes = [IsAdminOrReadOnly]  # seuls admins modifient
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -52,25 +39,22 @@ class ItemViewSet(viewsets.ModelViewSet):
             return ItemUpdateSerializer
         return ItemSerializer
 
-    # seules les admins peuvent créer/modifier/supprimer
-    @allowed_roles("admin")
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+    # feed
+    @action(detail=False, methods=["get"], url_path="feed")
+    def feed(self,request):
+        """
+        Retourne un "feed" des items, triés par popularité (ou autre critère).
+        Plus tard, on pourra ajouter des recommandations personnalisées.
+        """
+        items = (
+            Item.objects.all()
+            .select_related("category", "created_by")
+            .order_by("-popularity_score", "-created_at") #[:50] pour le top 50
+        )
+        serializer = ItemSerializer(items, many=True)
+        return Response(serializer.data)
 
-    @allowed_roles("admin")
-    def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
-
-    @allowed_roles("admin")
-    def partial_update(self, request, *args, **kwargs):
-        return super().partial_update(request, *args, **kwargs)
-
-    @allowed_roles("admin")
-    def destroy(self, request, *args, **kwargs):
-        return super().destroy(request, *args, **kwargs)
-
-
-# viewset pour gérer les interactions utilisateur
+# Gestion des interactions utilisateur
 class UserInteractionViewSet(viewsets.ModelViewSet):
     queryset = UserInteraction.objects.all()
 
@@ -81,35 +65,32 @@ class UserInteractionViewSet(viewsets.ModelViewSet):
             return UserInteractionUpdateSerializer
         return UserInteractionSerializer
 
-    # seuls les membres et admins peuvent créer une interaction
-    @allowed_roles("member", "admin")
-    def create(self, request, *args, **kwargs):
-        request.data["user"] = request.user.id  # forcer l'utilisateur connecté
-        return super().create(request, *args, **kwargs)
+    def get_permissions(self):
+        # création = utilisateur connecté requis
+        if self.action == "create":
+            return [permissions.IsAuthenticated()]
+        # update/destroy = propriétaire ou admin
+        if self.action in ["update", "partial_update", "destroy"]:
+            return [IsOwnerOrAdmin()]
+        # lecture libre
+        return [permissions.AllowAny()]
 
-    # membres peuvent modifier uniquement leurs propres interactions
-    @allowed_roles("member", "admin")
-    def update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        if obj.user != request.user and request.user.role != "admin":
-            return Response({"detail": "Permission denied"}, status=403)
-        return super().update(request, *args, **kwargs)
-
-    @allowed_roles("member", "admin")
-    def partial_update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        if obj.user != request.user and request.user.role != "admin":
-            return Response({"detail": "Permission denied"}, status=403)
-        return super().partial_update(request, *args, **kwargs)
-
-    @action(detail=False, methods=['get'], url_path='liked-items/(?P<user_id>[^/.]+)')
+    # Items likés par un utilisateur
+    @action(detail=False, methods=["get"], url_path="liked-items/(?P<user_id>[^/.]+)")
     def liked_items(self, request, user_id=None):
-        interactions = UserInteraction.objects.filter(user_id=user_id, liked=True)
+        interactions = (
+            UserInteraction.objects.filter(user_id=user_id, liked=True)
+            .select_related("item")  # optimisation DB
+        )
         serializer = UserInteractionSerializer(interactions, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], url_path='bookmarked-items/(?P<user_id>[^/.]+)')
+    # Items bookmarkés par un utilisateur
+    @action(detail=False, methods=["get"], url_path="bookmarked-items/(?P<user_id>[^/.]+)")
     def bookmarked_items(self, request, user_id=None):
-        interactions = UserInteraction.objects.filter(user_id=user_id, bookmarked=True)
+        interactions = (
+            UserInteraction.objects.filter(user_id=user_id, bookmarked=True)
+            .select_related("item")
+        )
         serializer = UserInteractionSerializer(interactions, many=True)
         return Response(serializer.data)
