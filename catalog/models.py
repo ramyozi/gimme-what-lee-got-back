@@ -48,7 +48,11 @@ class UserInteraction(models.Model):
 
     user = models.ForeignKey(Account, on_delete=models.CASCADE)
     item = models.ForeignKey("Item", on_delete=models.CASCADE)
-    interaction_type = models.CharField(max_length=20, choices=InteractionType.choices)
+    interaction_type = models.CharField(
+        max_length=20,
+        choices=InteractionType.choices,
+        default=InteractionType.LIKE
+    )
     rating = models.PositiveIntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
