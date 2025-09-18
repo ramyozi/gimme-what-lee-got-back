@@ -1,5 +1,6 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from catalog.models import Category, Item, UserInteraction
@@ -53,6 +54,31 @@ class ItemViewSet(viewsets.ModelViewSet):
         )
         serializer = ItemSerializer(items, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated], url_path="like")
+    def like(self, request, pk=None):
+        """
+        Toggle like pour l'utilisateur connecté sur l'item pk.
+        Retourne l'état de l'interaction.
+        """
+        item = self.get_object()
+        user = request.user
+        interaction, created = UserInteraction.objects.get_or_create(user=user, item=item)
+        interaction.liked = not interaction.liked
+        interaction.save()
+        return Response({"liked": interaction.liked}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated], url_path="bookmark")
+    def bookmark(self, request, pk=None):
+        """
+        Toggle bookmark pour l'utilisateur connecté sur l'item pk.
+        """
+        item = self.get_object()
+        user = request.user
+        interaction, created = UserInteraction.objects.get_or_create(user=user, item=item)
+        interaction.bookmarked = not interaction.bookmarked
+        interaction.save()
+        return Response({"bookmarked": interaction.bookmarked}, status=status.HTTP_200_OK)
 
 # Gestion des interactions utilisateur
 class UserInteractionViewSet(viewsets.ModelViewSet):
