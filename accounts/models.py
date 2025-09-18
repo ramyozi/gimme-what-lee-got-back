@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
@@ -6,6 +7,7 @@ class RoleChoices(models.TextChoices):
     ADMIN = "admin", "Admin"
 
 class Account(AbstractUser):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     role = models.CharField(
         max_length=20,
         choices=RoleChoices.choices,
