@@ -41,18 +41,22 @@ class Item(models.Model):
 
 
 class UserInteraction(models.Model):
+    class InteractionType(models.TextChoices):
+        LIKE = "like", "Like"
+        BOOKMARK = "bookmark", "Bookmark"
+        RATING = "rating", "Rating"
+
     user = models.ForeignKey(Account, on_delete=models.CASCADE)
-    item = models.ForeignKey(Item, on_delete=models.CASCADE)
-    liked = models.BooleanField(default=False)
-    bookmarked = models.BooleanField(default=False)
-    viewed_at = models.DateTimeField(auto_now_add=True)
+    item = models.ForeignKey("Item", on_delete=models.CASCADE)
+    interaction_type = models.CharField(max_length=20, choices=InteractionType.choices)
     rating = models.PositiveIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('user', 'item')
+        unique_together = ("user", "item", "interaction_type")
         indexes = [
-            models.Index(fields=['user', 'item']),
-            models.Index(fields=['liked']),
-            models.Index(fields=['bookmarked']),
+            models.Index(fields=["user", "item", "interaction_type"]),
         ]
 
+    def __str__(self):
+        return f"{self.user.username} - {self.interaction_type} - {self.item.title}"

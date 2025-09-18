@@ -33,7 +33,7 @@ class ItemUpdateSerializer(serializers.ModelSerializer):
 class UserInteractionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserInteraction
-        fields = ('user', 'item', 'liked', 'bookmarked', 'rating')
+        fields = ('user', 'item', 'rating')
 
     """
     Lors de la création, l'utilisateur est automatiquement
@@ -49,14 +49,13 @@ class UserInteractionCreateSerializer(serializers.ModelSerializer):
     def validate(self, data):
         user = self.context['request'].user
         item = data.get('item')
+        interaction_type = data.get("interaction_type")
 
-        if UserInteraction.objects.filter(user=user, item=item).exists():
-            raise serializers.ValidationError(
-                {"detail": "You already have an interaction with this item."}
-            )
+        if UserInteraction.objects.filter(user=user, item=item, interaction_type=interaction_type).exists():            raise serializers.ValidationError(
+                {"detail": f"You already have a {interaction_type} interaction with this item."}            )
         return data
 
 class UserInteractionUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserInteraction
-        fields = ('liked', 'bookmarked', 'rating')
+        fields = ('rating')
