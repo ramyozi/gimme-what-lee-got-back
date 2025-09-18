@@ -104,19 +104,17 @@ class UserInteractionViewSet(viewsets.ModelViewSet):
     # Items likés par un utilisateur
     @action(detail=False, methods=["get"], url_path="liked-items/(?P<user_id>[^/.]+)")
     def liked_items(self, request, user_id=None):
-        interactions = (
-            UserInteraction.objects.filter(user_id=user_id, liked=True)
-            .select_related("item")  # optimisation DB
-        )
+        interactions = UserInteraction.objects.filter(
+            user_id=user_id, interaction_type="like"
+        ).select_related("item")
         serializer = UserInteractionSerializer(interactions, many=True)
         return Response(serializer.data)
 
     # Items bookmarkés par un utilisateur
     @action(detail=False, methods=["get"], url_path="bookmarked-items/(?P<user_id>[^/.]+)")
     def bookmarked_items(self, request, user_id=None):
-        interactions = (
-            UserInteraction.objects.filter(user_id=user_id, bookmarked=True)
-            .select_related("item")
-        )
+        interactions = UserInteraction.objects.filter(
+            user_id=user_id, interaction_type="bookmark"
+        ).select_related("item")
         serializer = UserInteractionSerializer(interactions, many=True)
         return Response(serializer.data)
