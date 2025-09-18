@@ -1,5 +1,6 @@
 from django.contrib.auth import logout
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, viewsets
+from rest_framework.permissions import IsAdminUser
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -46,3 +47,8 @@ class MeView(APIView):
     def get(self, request):
         serializer = AccountSerializer(request.user)
         return Response(serializer.data)
+
+class AccountViewSet(viewsets.ModelViewSet):
+    queryset = Account.objects.all()
+    serializer_class = AccountSerializer
+    permission_classes = [IsAdminUser]  # seuls admins peuvent gérer les users
