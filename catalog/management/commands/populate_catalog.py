@@ -1,74 +1,78 @@
 # catalog/management/commands/populate_catalog.py
 import requests
-import random
 from django.core.management.base import BaseCommand
 from catalog.models import Category, Item, Person
 from accounts.models import Account
-
+from core.settings import env  # <- use your environ setup
 
 class Command(BaseCommand):
-    help = "Peuple le catalogue avec des comics Marvel/DC (focus Batman inclus)"
+    help = "Populate the catalog with comics from ComicVine"
 
     def add_arguments(self, parser):
-        parser.add_argument("--limit", type=int, default=50, help="Nombre d'items à récupérer (par défaut 50)")
+        parser.add_argument("--limit", type=int, default=25, help="Number of comics to fetch")
+        parser.add_argument("--query", type=str, default="", help="Search query (e.g., 'batman')")
 
     def handle(self, *args, **options):
-        publishers = ["Marvel", "DC Comics"]
-        categories = {p: Category.objects.get_or_create(name=p)[0] for p in publishers}
+        API_KEY = env("COMICVINE_API_KEY", default=None)
+        if not API_KEY:
+            self.stdout.write(self.style.ERROR("❌ COMICVINE_API_KEY not set in .env"))
+            return
+
+        query = options["query"]
+        limit = options["limit"]
 
         user, _ = Account.objects.get_or_create(username="admin", defaults={"role": "admin"})
 
-        urls = [
-            f"https://openlibrary.org/search.json?q=batman&limit={options['limit']}",
-            f"https://openlibrary.org/search.json?q=marvel&limit={options['limit']}",
-            f"https://openlibrary.org/search.json?q=dc+comics&limit={options['limit']}",
-        ]
+        url = f"https://comicvine.gamespot.com/api/issues/?api_key={API_KEY}&format=json&filter=name:{query}&limit={limit}"
+        headers = {"User-Agent": "MyDjangoApp/1.0"}
 
-        for url in urls:
-            response = requests.get(url)
+        response = requests.get(url, headers=headers)
+        if response.status_code != 200:
+            self.stdout.write(self.style.ERROR(f"❌ API request failed: {response.status_code}"))
+            self.stdout.write(self.style.ERROR(response.text))
+            return
+
+        try:
             data = response.json()
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"❌ Failed to decode JSON: {e}"))
+            self.stdout.write(self.style.ERROR(response.text))
+            return
 
-            for doc in data.get("docs", []):
-                title = doc.get("title")
-                description = doc.get("first_sentence") if isinstance(doc.get("first_sentence"), str) else ""
-                publisher_name = (doc.get("publisher") or ["DC Comics"])[0]  # fallback DC
-                category = categories["Marvel"] if "marvel" in publisher_name.lower() else categories["DC Comics"]
+        for issue in data.get("results", []):
+            title = issue.get("name") or "Untitled"
+            description = issue.get("description") or "No description available"
+            category_name = issue.get("volume", {}).get("name") or "Misc"
+            category, _ = Category.objects.get_or_create(name=category_name)
 
-                # Image OpenLibrary (covers)
-                image_url = None
-                if "cover_i" in doc:
-                    image_url = f"https://covers.openlibrary.org/b/id/{doc['cover_i']}-L.jpg"
+            image_url = issue.get("image", {}).get("original_url")
+            external_url = issue.get("site_detail_url")
 
-                # URL externe
-                key = doc.get("key")
-                external_url = f"https://openlibrary.org{key}" if key else None
+            tags = [category_name]
+            if title:
+                tags += title.split(" ")
 
-                # Tags basiques : mots du titre + publisher
-                tags = title.split(" ") if title else []
-                if publisher_name:
-                    tags.append(publisher_name)
+            item, created = Item.objects.update_or_create(
+                title=title,
+                category=category,
+                defaults={
+                    "description": description,
+                    "created_by": user,
+                    "image": image_url,
+                    "url": external_url,
+                    "tags": tags,
+                },
+            )
 
-                # Création ou mise à jour
-                item, created = Item.objects.update_or_create(
-                    title=title,
-                    category=category,
-                    defaults={
-                        "description": description or "Pas de description disponible",
-                        "created_by": user,
-                        "image": image_url,
-                        "url": external_url,
-                        "tags": tags,
-                    },
-                )
+            # Add people (authors, editors, etc.)
+            for person_data in issue.get("person_credits", []) + issue.get("story_arc_credits", []):
+                name = person_data.get("name")
+                if name:
+                    person, _ = Person.objects.get_or_create(name=name)
+                    item.authors.add(person)
 
-                # Associer auteurs
-                for author_name in doc.get("author_name", []):
-                    author, _ = Person.objects.get_or_create(name=author_name)
-                    item.authors.add(author)
+            item.save()
+            action = "✅ Created" if created else "♻️ Updated"
+            self.stdout.write(f"{action}: {title} ({category_name})")
 
-                item.save()
-
-                action = "✅ Créé" if created else "♻️ Mis à jour"
-                self.stdout.write(f"{action} : {title} ({publisher_name})")
-
-        self.stdout.write(self.style.SUCCESS("🎉 Catalogue enrichi avec Marvel/DC Comics !"))
+        self.stdout.write(self.style.SUCCESS(f"🎉 Catalog populated with {len(data.get('results', []))} comics!"))
