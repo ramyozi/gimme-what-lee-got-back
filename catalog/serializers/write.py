@@ -58,4 +58,4 @@ class UserInteractionCreateSerializer(serializers.ModelSerializer):
 class UserInteractionUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserInteraction
-        fields = ('rating')
+        fields = ('rating',)

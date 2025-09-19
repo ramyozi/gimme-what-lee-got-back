@@ -1,8 +1,10 @@
+import uuid
 from django.db import models
 from accounts.models import Account
 
 
 class Category(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
 
@@ -10,6 +12,7 @@ class Category(models.Model):
         return self.name
 
 class Person(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     bio = models.TextField(blank=True)
     website = models.URLField(blank=True, null=True)
@@ -18,6 +21,7 @@ class Person(models.Model):
         return self.name
 
 class Item(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
     description = models.TextField()
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='items')
@@ -46,6 +50,7 @@ class UserInteraction(models.Model):
         BOOKMARK = "bookmark", "Bookmark"
         RATING = "rating", "Rating"
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(Account, on_delete=models.CASCADE)
     item = models.ForeignKey("Item", on_delete=models.CASCADE)
     interaction_type = models.CharField(

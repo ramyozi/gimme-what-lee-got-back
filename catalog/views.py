@@ -1,9 +1,14 @@
-from rest_framework import viewsets, permissions, status
+from django_filters import rest_framework as filters
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets, permissions, status, generics, filters
 from rest_framework.decorators import action
+from rest_framework import generics, filters as drf_filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from catalog.filters import ItemFilter
 from catalog.models import Category, Item, UserInteraction
+from catalog.pagination import CustomPageNumberPagination
 from catalog.permissions import IsAdminOrReadOnly, IsOwnerOrAdmin
 from catalog.serializers.read import (
     CategorySerializer, ItemSerializer, UserInteractionSerializer
@@ -118,3 +123,15 @@ class UserInteractionViewSet(viewsets.ModelViewSet):
         ).select_related("item")
         serializer = UserInteractionSerializer(interactions, many=True)
         return Response(serializer.data)
+
+# API endpoint for catalog search with filters, pagination, sorting
+class ItemSearchView(generics.ListAPIView):
+    queryset = Item.objects.all()
+    serializer_class = ItemSerializer
+    filter_backends = [DjangoFilterBackend, drf_filters.SearchFilter, drf_filters.OrderingFilter]
+
+    filterset_class = ItemFilter  # <-- use custom filter
+
+    search_fields = ['title', 'description']  # search by text
+    ordering_fields = ['created_at', 'updated_at', 'rating', 'popularity_score', 'number_of_ratings']
+    pagination_class = CustomPageNumberPagination
