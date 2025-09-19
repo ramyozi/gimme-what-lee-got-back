@@ -86,7 +86,7 @@ gimmewhatleegot-backend/
 ## Gimme What Lee Got
 
 **Gimme What Lee Got** is a playful yet ambitious project inspired by the RDCworld “Lee” meme.
-The idea is simple: just like Mark asked the barber to "give me what Lee got", this app helps people discover and get recommendations for products, services, or content that others have found useful, interesting, or popular.
+The idea is simple: just like Mark asked the barber to "give me what Lee got", this app helps people discover and get recommendations for books, comics, and other content that others have found useful, interesting, or popular.
 
 ### Goal of the Project
 
@@ -101,9 +101,9 @@ The goal is to build a smart catalog and recommendation platform powered by:
 
 Instead of being just a static library or marketplace, **Gimme What Lee Got** focuses on:
 
-- Cataloging: Store and organize products/services/content.
+- Cataloging: Store and organize a wide range of items including products, books, comics, articles, services, and media content.
 - Recommendations: Suggest items to users based on what others like, trends, or similarity (AI-driven).
-- Community-driven discovery: If Lee liked it, maybe you will too.
+- Community-driven discovery: If Your friend liked it, maybe you will too.
 
 ### Why this project?
 
