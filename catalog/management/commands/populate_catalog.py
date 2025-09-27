@@ -3,76 +3,93 @@ import requests
 from django.core.management.base import BaseCommand
 from catalog.models import Category, Item, Person
 from accounts.models import Account
-from core.settings import env  # <- use your environ setup
+
 
 class Command(BaseCommand):
-    help = "Populate the catalog with comics from ComicVine"
+    help = "Populate the catalog with items from Open Library"
 
     def add_arguments(self, parser):
-        parser.add_argument("--limit", type=int, default=25, help="Number of comics to fetch")
-        parser.add_argument("--query", type=str, default="", help="Search query (e.g., 'batman')")
+        parser.add_argument(
+            "--query",
+            type=str,
+            default="comics",
+            help="Search query (e.g., 'batman', 'superhero')",
+        )
+        parser.add_argument(
+            "--limit",
+            type=int,
+            default=25,
+            help="Number of items to fetch from Open Library",
+        )
 
     def handle(self, *args, **options):
-        API_KEY = env("COMICVINE_API_KEY", default=None)
-        if not API_KEY:
-            self.stdout.write(self.style.ERROR("❌ COMICVINE_API_KEY not set in .env"))
-            return
-
         query = options["query"]
         limit = options["limit"]
 
-        user, _ = Account.objects.get_or_create(username="admin", defaults={"role": "admin"})
+        url = f"https://openlibrary.org/search.json?q={query}&limit={limit}"
+        self.stdout.write(f"📡 Fetching from: {url}")
 
-        url = f"https://comicvine.gamespot.com/api/issues/?api_key={API_KEY}&format=json&filter=name:{query}&limit={limit}"
-        headers = {"User-Agent": "MyDjangoApp/1.0"}
-
-        response = requests.get(url, headers=headers)
-        if response.status_code != 200:
-            self.stdout.write(self.style.ERROR(f"❌ API request failed: {response.status_code}"))
-            self.stdout.write(self.style.ERROR(response.text))
+        resp = requests.get(url)
+        if resp.status_code != 200:
+            self.stdout.write(self.style.ERROR(f"❌ Request failed: {resp.status_code}"))
             return
 
-        try:
-            data = response.json()
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f"❌ Failed to decode JSON: {e}"))
-            self.stdout.write(self.style.ERROR(response.text))
+        data = resp.json()
+        docs = data.get("docs", [])
+        if not docs:
+            self.stdout.write(self.style.WARNING("⚠️ No results returned"))
             return
 
-        for issue in data.get("results", []):
-            title = issue.get("name") or "Untitled"
-            description = issue.get("description") or "No description available"
-            category_name = issue.get("volume", {}).get("name") or "Misc"
+        # Ensure admin user exists
+        user, _ = Account.objects.get_or_create(
+            username="admin", defaults={"role": "admin"}
+        )
+
+        created_count = 0
+        updated_count = 0
+
+        for doc in docs:
+            title = doc.get("title") or "Untitled"
+            if not title.strip() or title.lower() == "untitled":
+                continue  # skip useless items
+
+            description = (
+                doc.get("first_sentence")
+                or doc.get("subtitle")
+                or "No description available"
+            )
+
+            category_name = "Books/Comics"
             category, _ = Category.objects.get_or_create(name=category_name)
 
-            image_url = issue.get("image", {}).get("original_url")
-            external_url = issue.get("site_detail_url")
-
-            tags = [category_name]
-            if title:
-                tags += title.split(" ")
+            external_url = f"https://openlibrary.org{doc.get('key')}"
+            tags = doc.get("subject", [])[:5]
 
             item, created = Item.objects.update_or_create(
                 title=title,
                 category=category,
                 defaults={
-                    "description": description,
+                    "description": str(description),
                     "created_by": user,
-                    "image": image_url,
                     "url": external_url,
                     "tags": tags,
                 },
             )
 
-            # Add people (authors, editors, etc.)
-            for person_data in issue.get("person_credits", []) + issue.get("story_arc_credits", []):
-                name = person_data.get("name")
-                if name:
-                    person, _ = Person.objects.get_or_create(name=name)
-                    item.authors.add(person)
+            # Add authors
+            for author_name in doc.get("author_name", []):
+                person, _ = Person.objects.get_or_create(name=author_name)
+                item.authors.add(person)
 
-            item.save()
-            action = "✅ Created" if created else "♻️ Updated"
-            self.stdout.write(f"{action}: {title} ({category_name})")
+            if created:
+                created_count += 1
+                self.stdout.write(f"✅ Created: {title}")
+            else:
+                updated_count += 1
+                self.stdout.write(f"♻️ Updated: {title}")
 
-        self.stdout.write(self.style.SUCCESS(f"🎉 Catalog populated with {len(data.get('results', []))} comics!"))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"🎉 Done! {created_count} new items, {updated_count} updated."
+            )
+        )
