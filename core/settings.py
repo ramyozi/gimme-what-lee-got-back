@@ -143,8 +143,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 
-
-
+CORS_ALLOW_CREDENTIALS = True
 
 # ImageField saving locally
 MEDIA_URL = '/media/'

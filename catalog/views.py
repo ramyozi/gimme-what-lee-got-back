@@ -1,4 +1,3 @@
-from django_filters import rest_framework as filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, permissions, status, generics, filters
 from rest_framework.decorators import action
@@ -23,7 +22,7 @@ from catalog.serializers.write import (
 # Gestion des catégories
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
-    permission_classes = [IsAdminOrReadOnly]  # seuls admins modifient
+    permission_classes = [permissions.AllowAny]
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -127,6 +126,8 @@ class UserInteractionViewSet(viewsets.ModelViewSet):
 # API endpoint for catalog search with filters, pagination, sorting
 class ItemSearchView(generics.ListAPIView):
     queryset = Item.objects.all()
+    permission_classes = [permissions.AllowAny]
+
     serializer_class = ItemSerializer
     filter_backends = [DjangoFilterBackend, drf_filters.SearchFilter, drf_filters.OrderingFilter]
 
