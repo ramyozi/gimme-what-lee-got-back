@@ -123,6 +123,17 @@ class UserInteractionViewSet(viewsets.ModelViewSet):
         serializer = UserInteractionSerializer(interactions, many=True)
         return Response(serializer.data)
 
+    # Interactions d'un utilisateur pour un item donné
+    @action(detail=False, methods=["get"], url_path="user/(?P<user_id>[^/.]+)/item/(?P<item_id>[^/.]+)")
+    def interactions_for_item(self, request, user_id=None, item_id=None):
+        """
+        Renvoie toutes les interactions d'un utilisateur pour un item donné.
+        """
+        interactions = UserInteraction.objects.filter(user_id=user_id, item_id=item_id)
+        serializer = UserInteractionSerializer(interactions, many=True)
+        return Response(serializer.data)
+
+
 # API endpoint for catalog search with filters, pagination, sorting
 class ItemSearchView(generics.ListAPIView):
     queryset = Item.objects.all()
