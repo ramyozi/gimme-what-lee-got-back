@@ -87,6 +87,16 @@ DATABASES = {
     }
 }
 
+OPEN_LIBRARY_BASE_URL = env("OPEN_LIBRARY_BASE_URL", default="https://openlibrary.org")
+
+COMICVINE_API_KEY = env("COMICVINE_API_KEY", default=None)
+COMICVINE_BASE_URL = env("COMICVINE_BASE_URL", default="https://comicvine.gamespot.com/api")
+COMICVINE_USER_AGENT = env("COMICVINE_USER_AGENT", default="gimme-what-lee-got/1.0")
+
+MARVEL_PUBLIC_KEY = env("MARVEL_PUBLIC_KEY", default=None)
+MARVEL_PRIVATE_KEY = env("MARVEL_PRIVATE_KEY", default=None)
+MARVEL_BASE_URL = env("MARVEL_BASE_URL", default="https://gateway.marvel.com/v1/public")
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
