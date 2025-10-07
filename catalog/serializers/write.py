@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from catalog.models import Category, Item, UserInteraction
+from catalog.models import Category, Item, UserInteraction, Person
+
 
 class CategoryCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -10,6 +11,17 @@ class CategoryUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ('id', 'name', 'description')
+
+class PersonCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Person
+        fields = ('id', 'name', 'bio', 'website')
+
+
+class PersonUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Person
+        fields = ('id', 'name', 'bio', 'website')
 
 class ItemCreateSerializer(serializers.ModelSerializer):
     class Meta:
