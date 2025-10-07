@@ -25,7 +25,7 @@ class Item(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='items')
-    image = models.ImageField(upload_to='items/', blank=True, null=True)
+    image = models.URLField(blank=True, null=True)
     url = models.URLField(blank=True, null=True)
     created_by = models.ForeignKey(
         Account, on_delete=models.SET_NULL, null=True, related_name='items_created'

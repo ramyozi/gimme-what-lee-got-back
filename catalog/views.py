@@ -6,16 +6,16 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from catalog.filters import ItemFilter
-from catalog.models import Category, Item, UserInteraction
+from catalog.models import Category, Item, UserInteraction, Person
 from catalog.pagination import CustomPageNumberPagination
 from catalog.permissions import IsAdminOrReadOnly, IsOwnerOrAdmin
 from catalog.serializers.read import (
-    CategorySerializer, ItemSerializer, UserInteractionSerializer
+    CategorySerializer, ItemSerializer, UserInteractionSerializer, PersonSerializer
 )
 from catalog.serializers.write import (
     CategoryCreateSerializer, CategoryUpdateSerializer,
     ItemCreateSerializer, ItemUpdateSerializer,
-    UserInteractionCreateSerializer, UserInteractionUpdateSerializer,
+    UserInteractionCreateSerializer, UserInteractionUpdateSerializer, PersonCreateSerializer, PersonUpdateSerializer,
 )
 
 
@@ -31,6 +31,17 @@ class CategoryViewSet(viewsets.ModelViewSet):
             return CategoryUpdateSerializer
         return CategorySerializer
 
+# Gestion des personnes
+class PersonViewSet(viewsets.ModelViewSet):
+    queryset = Person.objects.all()
+    permission_classes = [IsAdminOrReadOnly]
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return PersonCreateSerializer
+        if self.action in ["update", "partial_update"]:
+            return PersonUpdateSerializer
+        return PersonSerializer
 
 # Gestion des items
 class ItemViewSet(viewsets.ModelViewSet):
@@ -122,6 +133,17 @@ class UserInteractionViewSet(viewsets.ModelViewSet):
         ).select_related("item")
         serializer = UserInteractionSerializer(interactions, many=True)
         return Response(serializer.data)
+
+    # Interactions d'un utilisateur pour un item donné
+    @action(detail=False, methods=["get"], url_path="user/(?P<user_id>[^/.]+)/item/(?P<item_id>[^/.]+)")
+    def interactions_for_item(self, request, user_id=None, item_id=None):
+        """
+        Renvoie toutes les interactions d'un utilisateur pour un item donné.
+        """
+        interactions = UserInteraction.objects.filter(user_id=user_id, item_id=item_id)
+        serializer = UserInteractionSerializer(interactions, many=True)
+        return Response(serializer.data)
+
 
 # API endpoint for catalog search with filters, pagination, sorting
 class ItemSearchView(generics.ListAPIView):
