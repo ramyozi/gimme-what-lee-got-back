@@ -42,7 +42,7 @@ class Item(models.Model):
 
     class Meta:
         ordering = ["-popularity_score", "-created_at"]
-        
+
     def __str__(self):
         return self.title
 
