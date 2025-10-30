@@ -40,6 +40,9 @@ class Item(models.Model):
     producers = models.ManyToManyField(Person, blank=True, related_name="produced_items")
     contributors = models.ManyToManyField(Person, blank=True, related_name="contributed_items")
 
+    class Meta:
+        ordering = ["-popularity_score", "-created_at"]
+        
     def __str__(self):
         return self.title
 
