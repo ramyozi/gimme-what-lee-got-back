@@ -95,6 +95,20 @@ class ItemViewSet(viewsets.ModelViewSet):
         interaction.save()
         return Response({"bookmarked": interaction.bookmarked}, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=["get"], url_path="suggestions", permission_classes=[permissions.IsAuthenticated])
+    def suggestions(self, request):
+        """
+        Returns placeholder suggested items.
+        TODO: personalize based on user likes and bookmarks.
+        """
+        user = request.user
+        items = (
+            Item.objects.all()
+            .order_by("-popularity_score", "-created_at")[:5]
+        )
+        serializer = ItemSerializer(items, many=True)
+        return Response(serializer.data)
+
 # Gestion des interactions utilisateur
 class UserInteractionViewSet(viewsets.ModelViewSet):
     queryset = UserInteraction.objects.all()

@@ -1,4 +1,4 @@
-import requests, hashlib, time, random
+import requests, random
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from catalog.models import Category, Item, Person
@@ -6,49 +6,39 @@ from accounts.models import Account
 
 
 class Command(BaseCommand):
-    help = "Interactively populate the catalog from Marvel or DC (ComicVine) APIs"
+    help = "Populate the catalog with comics (Marvel/DC) using ComicVine API"
 
     def handle(self, *args, **opts):
-        has_marvel = bool(settings.MARVEL_PUBLIC_KEY and settings.MARVEL_PRIVATE_KEY)
-        has_dc = bool(settings.COMICVINE_API_KEY)
-
-        # ─────────── No data available ───────────
-        if not has_marvel and not has_dc:
-            self.stderr.write(
-                "❌ Neither Marvel nor ComicVine API keys are configured. "
-                "Please add them in your .env file first."
-            )
+        # ─────────── Check ComicVine API Key ───────────
+        if not getattr(settings, "COMICVINE_API_KEY", None):
+            self.stderr.write("❌ ComicVine API key missing in .env.")
             return
 
-        # ─────────── Choose library ───────────
-        available = []
-        if has_marvel:
-            available.append("marvel")
-        if has_dc:
-            available.append("dc")
-
-        print("\n📚 Available libraries:")
+        # ─────────── Select Universe ───────────
+        available = ["marvel", "dc"]
+        print("\n📚 Available universes:")
         for i, lib in enumerate(available, 1):
             print(f"  {i}. {lib.capitalize()}")
+
         while True:
-            choice = input(f"Select a library ({'/'.join(available)}): ").strip().lower()
-            if choice in available:
-                universe = choice
+            universe = input(f"Select a universe ({'/'.join(available)}): ").strip().lower()
+            if universe in available:
                 break
             print("⚠️ Invalid choice. Try again.")
 
-        # ─────────── Choose query ───────────
-        if universe == "marvel":
-            examples = ["spider-man", "iron man", "black widow", "x-men", "doctor strange"]
-        else:
-            examples = ["batman", "superman", "wonder woman", "peacemaker", "booster gold"]
+        # ─────────── Example Searches ───────────
+        examples = {
+            "marvel": ["iron man", "spider-man", "x-men", "captain america", "doctor strange"],
+            "dc": ["batman", "superman", "wonder woman", "flash", "green lantern"],
+        }[universe]
 
         print("\n💡 Example searches:")
         for ex in examples:
             print(f"  • {ex}")
 
         query = input(f"Enter a search term (default '{examples[0]}'): ").strip() or examples[0]
-        # ─────────── Choose limit ───────────
+
+        # ─────────── Limit ───────────
         while True:
             try:
                 limit = int(input("How many items? (max 25): ").strip() or 10)
@@ -58,37 +48,15 @@ class Command(BaseCommand):
             except ValueError:
                 print("⚠️ Please enter a valid number.")
 
-        if universe == "marvel":
-            self._populate_marvel(query, limit)
-        else:
-            self._populate_comicvine(query, limit)
+        # ─────────── Populate via ComicVine ───────────
+        self._populate_comicvine(query, limit, universe)
 
-    # ────────── Marvel ──────────
-    def _auth_params(self):
-        ts = str(int(time.time()))
-        h = hashlib.md5((ts + settings.MARVEL_PRIVATE_KEY + settings.MARVEL_PUBLIC_KEY).encode()).hexdigest()
-        return {"ts": ts, "apikey": settings.MARVEL_PUBLIC_KEY, "hash": h}
-
-    def _populate_marvel(self, query, limit):
-        base = settings.MARVEL_BASE_URL.rstrip("/")
-        url = f"{base}/comics"
-        params = self._auth_params() | {"titleStartsWith": query, "limit": limit}
-        r = requests.get(url, params=params, timeout=20)
-        if r.status_code != 200:
-            self.stderr.write(f"❌ Marvel {r.status_code}: {r.text[:300]}")
-            return
-        comics = r.json().get("data", {}).get("results", [])
-        user, _ = Account.objects.get_or_create(username="admin", defaults={"role": "admin"})
-        cat, _ = Category.objects.get_or_create(name="Marvel Comics")
-        for c in comics:
-            self._save_item(c, cat, user, "marvel")
-
-    # ────────── ComicVine / DC ──────────
-    def _populate_comicvine(self, query, limit):
-        if not settings.COMICVINE_API_KEY:
-            self.stderr.write("❌ Missing ComicVine key")
-            return
-        url = f"{settings.COMICVINE_BASE_URL.rstrip('/')}/search/"
+    # ────────────────────────────────────────────────────────
+    # ComicVine population logic
+    # ────────────────────────────────────────────────────────
+    def _populate_comicvine(self, query, limit, universe="marvel"):
+        base_url = settings.COMICVINE_BASE_URL.rstrip("/")
+        url = f"{base_url}/search/"
         params = {
             "api_key": settings.COMICVINE_API_KEY,
             "format": "json",
@@ -97,66 +65,79 @@ class Command(BaseCommand):
             "limit": limit,
         }
         headers = {
-            "User-Agent": getattr(settings, "COMICVINE_USER_AGENT", "gimme-what-lee-got/1.0"),
+            "User-Agent": getattr(settings, "COMICVINE_USER_AGENT", "django-catalog-bot/1.0"),
             "Accept": "application/json",
         }
-        r = requests.get(url, params=params, headers=headers, timeout=20)
-        if r.status_code != 200:
-            self.stderr.write(f"❌ ComicVine {r.status_code}: {r.text[:300]}")
-            return
-        results = r.json().get("results", [])
-        user, _ = Account.objects.get_or_create(username="admin", defaults={"role": "admin"})
-        cat, _ = Category.objects.get_or_create(name="DC Comics")
-        for res in results:
-            self._save_item(res, cat, user, "dc")
 
-    # ────────── Shared save logic ──────────
+        self.stdout.write(f"🔎 Searching ComicVine for '{query}' ({universe}) ...")
+        try:
+            r = requests.get(url, params=params, headers=headers, timeout=25)
+            r.raise_for_status()
+            data = r.json()
+        except Exception as e:
+            self.stderr.write(f"❌ ComicVine request failed: {e}")
+            return
+
+        results = data.get("results", [])
+        if not results:
+            self.stderr.write(f"⚠️ No results found for '{query}' on ComicVine.")
+            return
+
+        user, _ = Account.objects.get_or_create(username="admin", defaults={"role": "admin"})
+        cat, _ = Category.objects.get_or_create(name=f"{universe.capitalize()} Comics")
+
+        imported = 0
+        for res in results:
+            if self._save_item(res, cat, user, universe):
+                imported += 1
+
+        self.stdout.write(f"✅ {imported} comics imported successfully from ComicVine ({universe}).")
+
+    # ────────────────────────────────────────────────────────
+    # Shared save logic
+    # ────────────────────────────────────────────────────────
     def _save_item(self, data, category, user, universe):
-        if universe == "marvel":
-            title = data.get("title")
-            desc = data.get("description") or "No description"
-            urls = data.get("urls", [])
-            url = urls[0]["url"] if urls else None
-            thumb = data.get("thumbnail") or {}
-            image = None
-            if thumb and not thumb.get("path", "").endswith("image_not_available"):
-                image = f"{thumb['path']}.{thumb['extension']}"
-            creators = data.get("creators", {}).get("items", [])
-        else:
+        try:
             title = data.get("name") or data.get("volume", {}).get("name")
-            desc = data.get("deck") or data.get("description") or "No description"
+            desc = data.get("deck") or data.get("description") or "No description available."
             url = data.get("site_detail_url")
             image = data.get("image", {}).get("super_url") or data.get("image", {}).get("thumb_url")
+
             creators = data.get("person_credits", []) or data.get("creators", {}).get("items", [])
+            rating = round(random.uniform(3.0, 5.0), 2)
+            nratings = random.randint(10, 300)
+            popularity = nratings * rating / 10
 
-        rating = round(random.uniform(3.0, 5.0), 2)
-        nratings = random.randint(20, 500)
-        popularity = nratings * rating / 10
+            item, _ = Item.objects.update_or_create(
+                title=title or "Untitled",
+                category=category,
+                defaults={
+                    "description": desc,
+                    "created_by": user,
+                    "url": url,
+                    "image": image,
+                    "tags": [universe],
+                    "rating": rating,
+                    "number_of_ratings": nratings,
+                    "popularity_score": popularity,
+                },
+            )
 
-        item, _ = Item.objects.update_or_create(
-            title=title or "Untitled",
-            category=category,
-            defaults={
-                "description": desc,
-                "created_by": user,
-                "url": url,
-                "image": image,
-                "tags": [universe],
-                "rating": rating,
-                "number_of_ratings": nratings,
-                "popularity_score": popularity,
-            },
-        )
+            for c in creators:
+                name = c.get("name") if isinstance(c, dict) else str(c)
+                role = (c.get("role") if isinstance(c, dict) else "").lower()
+                if not name:
+                    continue
+                person, _ = Person.objects.get_or_create(name=name)
+                if "writer" in role or "author" in role:
+                    item.authors.add(person)
+                elif "editor" in role or "producer" in role:
+                    item.producers.add(person)
+                else:
+                    item.contributors.add(person)
 
-        for c in creators:
-            name = c.get("name") if isinstance(c, dict) else str(c)
-            role = (c.get("role") if isinstance(c, dict) else "").lower()
-            if not name:
-                continue
-            person, _ = Person.objects.get_or_create(name=name)
-            if "writer" in role or "author" in role:
-                item.authors.add(person)
-            elif "editor" in role or "producer" in role:
-                item.producers.add(person)
-            else:
-                item.contributors.add(person)
+            return True
+
+        except Exception as e:
+            self.stderr.write(f"⚠️ Error saving item: {e}")
+            return False
