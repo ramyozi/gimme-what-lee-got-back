@@ -1,9 +1,12 @@
+import numpy as np
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, permissions, status, generics, filters
 from rest_framework.decorators import action
 from rest_framework import generics, filters as drf_filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 from catalog.filters import ItemFilter
 from catalog.models import Category, Item, UserInteraction, Person
@@ -95,18 +98,60 @@ class ItemViewSet(viewsets.ModelViewSet):
         interaction.save()
         return Response({"bookmarked": interaction.bookmarked}, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=["get"], url_path="suggestions", permission_classes=[permissions.IsAuthenticated])
-    def suggestions(self, request):
+    @action(detail=False, methods=["get"], url_path="recommendations", permission_classes=[IsAuthenticated])
+    def recommendations(self, request):
         """
-        Returns placeholder suggested items.
-        TODO: personalize based on user likes and bookmarks.
+        Recommande des items similaires à ceux aimés ou enregistrés par l'utilisateur,
+        en utilisant la similarité vectorielle (TF-IDF + similarité cosinus).
         """
         user = request.user
-        items = (
-            Item.objects.all()
-            .order_by("-popularity_score", "-created_at")[:5]
-        )
-        serializer = ItemSerializer(items, many=True)
+
+        # Récupère les items que l'utilisateur a likés ou ajoutés en favoris
+        user_items = Item.objects.filter(
+            userinteraction__user=user,
+            userinteraction__interaction_type__in=["like", "bookmark"]
+        ).distinct()
+
+        # Si l'utilisateur n'a encore rien aimé, renvoyer les plus populaires
+        if not user_items.exists():
+            fallback = Item.objects.all().order_by("-popularity_score", "-rating")[:10]
+            serializer = ItemSerializer(fallback, many=True)
+            return Response(serializer.data)
+
+        # Crée un corpus textuel pour tous les items (titre, description, tags, catégorie)
+        items = Item.objects.all().select_related("category")
+        corpus = []
+        for item in items:
+            tags_text = " ".join(item.tags or [])
+            category_name = item.category.name if item.category else ""
+            text = f"{item.title} {item.description} {tags_text} {category_name}"
+            corpus.append(text)
+
+        # Convertit le texte en vecteurs numériques avec TF-IDF
+        vectorizer = TfidfVectorizer(stop_words="english", max_features=5000)
+        tfidf_matrix = vectorizer.fit_transform(corpus)
+
+        # Crée un vecteur moyen représentant les préférences de l'utilisateur
+        user_indices = [list(items).index(i) for i in user_items if i in items]
+        if not user_indices:
+            fallback = Item.objects.all().order_by("-popularity_score", "-rating")[:10]
+            serializer = ItemSerializer(fallback, many=True)
+            return Response(serializer.data)
+
+        user_vector = np.mean(tfidf_matrix[user_indices].toarray(), axis=0).reshape(1, -1)
+
+        # Calcule la similarité cosinus entre le vecteur utilisateur et tous les items
+        similarities = cosine_similarity(user_vector, tfidf_matrix)[0]
+
+        # Trie les items selon leur score de similarité
+        scored_items = list(zip(items, similarities))
+        scored_items.sort(key=lambda x: x[1], reverse=True)
+
+        # Exclut les items déjà likés ou favoris et garde les plus proches
+        recommended = [i for i, score in scored_items if i not in user_items][:20]
+
+        # Sérialise et renvoie les résultats
+        serializer = ItemSerializer(recommended, many=True)
         return Response(serializer.data)
 
 # Gestion des interactions utilisateur
